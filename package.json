@@ -1,0 +1,32 @@
+{
+  "name": "beebroker",
+  "version": "1.0.0",
+  "description": "Uma reprodução de um sistema MQTT, e todos os seus componentes para um cenário médico.",
+  "main": "index.js",
+  "scripts": {
+    "dev:broker": "nodemon ./broker/index.js",
+    "dev:sensor": "nodemon ./sensor/index.js",
+    "dev:webapp": "nodemon ./webapp/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/n0th1ng999/BeeBroker.git"
+  },
+  "keywords": [
+    "MQTT",
+    "MQTTBroker",
+    "MQTTSystem",
+    "Biometric",
+    "System",
+    "Hospital"
+  ],
+  "author": "Tiago Pereira, Francisco, Gustavo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/n0th1ng999/BeeBroker/issues"
+  },
+  "homepage": "https://github.com/n0th1ng999/BeeBroker#readme",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
