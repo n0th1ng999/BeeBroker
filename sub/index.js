@@ -25,16 +25,12 @@ const client = net.createConnection(
 				clientType: "Nurse",
 			}).toJson()
 		);
-		setInterval(
-			() =>
-				client.write(
-					new MqttPacket({
-						code: 3,
-						topic: "Pacients/3/Something",
-						value: 120,
-					}).toJson()
-				),
-			1000
+
+		client.write(
+			new MqttPacket({
+				code: 8,
+				topic: "Pacients/#/",
+			}).toJson()
 		);
 
 		client.on("data", (data) => {

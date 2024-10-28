@@ -4,9 +4,10 @@
   "description": "Uma reprodução de um sistema MQTT, e todos os seus componentes para um cenário médico.",
   "main": "index.js",
   "scripts": {
-    "dev:broker": "nodemon ./broker/index.js",
-    "dev:sensor": "nodemon ./sensor/index.js",
-    "dev:webapp": "nodemon ./webapp/index.js"
+    "dev:broker": "nodemon ./broker",
+    "dev:sensor": "nodemon ./sensor",
+    "dev:webapp": "nodemon ./webapp",
+    "dev:sub": "nodemon ./sub"
   },
   "repository": {
     "type": "git",
@@ -27,6 +28,7 @@
   },
   "homepage": "https://github.com/n0th1ng999/BeeBroker#readme",
   "dependencies": {
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.7.3"
   }
 }
