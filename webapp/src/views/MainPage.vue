@@ -1,13 +1,19 @@
-<template>
-  Main
-</template>
-
-<script>
-export default {
-
-}
+<script setup lang="ts">
+import PatientCard from "../components/PatientCard.vue";
 </script>
 
-<style>
+<template>
+  <h1>Hello, JOHN DOE!!!</h1>
+  <h2>Patients</h2>
+  <div class="d-flex flex-wrap">
+    <PatientCard />
+    <PatientCard />
+    <PatientCard />
+  </div>
+</template>
 
-</style>
+<script lang="ts">
+export default {};
+</script>
+
+<style></style>
