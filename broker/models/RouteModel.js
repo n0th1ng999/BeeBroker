@@ -1,11 +1,15 @@
 const mongoose = require("mongoose");
 
-const Route = mongoose.model("Route", {
-	pathSegment: mongoose.Types.String,
-	value: Number,
-	subRoutes: mongoose.Types.ArraySubdocument,
+const valueSchema = new mongoose.Schema({
+	timestamp: { type: Date, default: Date.now },
+	value: { type: mongoose.Schema.Types.Mixed }, // Allows any data type
 });
 
-module.exports = Route;
+const RouteSchema = new mongoose.Schema({
+	topic: { type: String, required: true },
+	value: [valueSchema], 
+});
 
-// Example usage:
+const Route = mongoose.model("Route", RouteSchema);
+
+module.exports = Route;

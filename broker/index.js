@@ -1,10 +1,16 @@
 const net = require("net");
 const { handlePacket } = require("./packetHandlers");
 const mongoose = require("mongoose");
+const Route = require("./models/RouteModel");
 require("dotenv").config();
 
 //connect to mongoose server
-mongoose.connect("mongodb://localhost:27017/beebroker");
+try {
+	mongoose.connect("mongodb://localhost:27017/beeBroker", {});
+} catch (error) {
+	console.error("Failed to connect to MongoDB:", error);
+	process.exit(1);
+}
 
 //Parse data
 const parseData = (jsonString) => JSON.parse(jsonString);
@@ -13,30 +19,72 @@ const parseData = (jsonString) => JSON.parse(jsonString);
 // topics are stored in memory with the their respective values and subtopics
 // They have a nested structure that contains the following properties
 
-const topics = [
-	{ topic: "Pacients/1/Pulse", value: 115 },
-	{ topic: "Pacients/2/Pulse", value: 100 },
-	{ topic: "Pacients/2/Glucose", value: 120 },
-];
+// Todo: load topics from mongoDB
+// Insteal of loading  topics
+let topics = [];
+
+/**
+ * Route : {
+ * topic:String
+ * value:[
+ * { ... }]}
+ */
+Route.aggregate([
+	{
+		$project: {
+			topic: 1,
+			value: { $arrayElemAt: ["$value", -1] },
+		},
+	},
+])
+	.then((result) => {
+		result.map((route) => (route.value = route.value.value));
+		topics = [...result];
+	})
+	.catch((error) => console.error(error));
 
 //Server setup
+// TODO Change to tls
 const mqttBroker = net.createServer((socket) => {
-	//CUSTOM EVENTS: CONNECT, CONNACK, SUBSCRIBE, SUBACK, PUBLISH, PUBACK
-	let auth = { publish: false, subcribe: false };
+	const socketAddress = socket.address();
 
-	//Handle incoming data
-	socket.on("data", (packet) => handlePacket(packet, auth, socket, topics));
+	try {
+		//CUSTOM EVENTS: CONNECT, CONNACK, SUBSCRIBE, SUBACK, PUBLISH, PUBACK
+		let auth = { publish: false, subscribe: false };
 
-	//Handle closing of connection
-	socket.on("end", () => {
-		console.log(topics);
-		console.log("TCP connection ended");
-	});
+		//Handle incoming data
+		socket.on("data", (packet) => {
+			// Temporarily remove the listener to prevent more incoming packets
+			socket.pause();
 
-	socket.on("error", (err) => {
-		console.error(err);
-		socket.end();
-	});
+			handlePacket(packet, auth, socket, topics);
+
+			setTimeout(() => {
+				socket.resume();
+			}, 1000);
+		});
+
+		//Handle closing of connection
+		socket.on("end", () => {
+			clearPublishingInfo(socketAddress);
+			console.log(topics);
+			console.log("TCP connection ended");
+		});
+
+		socket.on("error", (err) => {
+			clearPublishingInfo(socketAddress);
+			console.error(err);
+			socket.end();
+		});
+
+		socket.on("close", (err) => {
+			clearPublishingInfo(socketAddress);
+			console.error(err);
+			socket.end();
+		});
+	} catch (err) {
+		clearPublishingInfo(socketAddress);
+	}
 });
 
 mqttBroker.listen(
@@ -46,3 +94,18 @@ mqttBroker.listen(
 		console.log(`listening on ${process.env.MQTT_BROKER_PORT}`);
 	}
 );
+
+const clearPublishingInfo = (publisherAddress) => {
+	topics.forEach((topic) => {
+		if (
+			JSON.stringify(topic.publisherAddress) ===
+			JSON.stringify(publisherAddress)
+		) {
+			console.log(
+				JSON.stringify(topic.publisherAddress),
+				JSON.stringify(publisherAddress)
+			);
+			delete topic.publisherAddress;
+		}
+	});
+};

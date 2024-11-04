@@ -20,16 +20,15 @@ const client = net.createConnection(
 		client.write(
 			new MqttPacket({
 				code: 1,
-				username: "tiago",
-				password: "pass",
-				clientType: "Nurse",
+				username: "Nurse 1",
+				password: "password",
 			}).toJson()
 		);
 
 		client.write(
 			new MqttPacket({
 				code: 8,
-				topic: "Pacients/#/",
+				topic: "patients/#",
 			}).toJson()
 		);
 

@@ -2,7 +2,7 @@ const packetTypes = [
 	{
 		code: 1,
 		type: "CONNECT",
-		requiredParams: ["password", "username", "clientType"],
+		requiredParams: ["password", "username"],
 	},
 	{
 		code: 2,

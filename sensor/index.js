@@ -20,18 +20,23 @@ const client = net.createConnection(
 		client.write(
 			new MqttPacket({
 				code: 1,
-				username: "tiago",
-				password: "pass",
-				clientType: "Nurse",
+				username: "Nurse 1",
+				password: "password",
+				patientId: 5,
 			}).toJson()
 		);
+
 		setInterval(
 			() =>
 				client.write(
 					new MqttPacket({
 						code: 3,
-						topic: "Pacients/3/Something",
-						value: 120,
+						topic: "patients/5",
+						value: {
+							random1: Math.random() * 10,
+							random2: Math.random() * 30,
+							random3: Math.random() * 50,
+						},
 					}).toJson()
 				),
 			1000

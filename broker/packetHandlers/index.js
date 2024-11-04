@@ -1,4 +1,6 @@
 const MqttPacket = require("../../packetFormatter");
+const Route = require("../models/RouteModel");
+const User = require("../models/UserModel");
 
 // -----Helper functions --------------------------------
 
@@ -10,7 +12,8 @@ const routeFinderIndex = (uri, serverTopics) => {
 			uri
 				.replace(/\//g, "\\/") // Escape slashes
 				.replace(/\+/g, "[^\\/]+") // `+` matches one segment
-				.replace(/#/g, ".*") // `#` matches any segments after
+				.replace(/#/g, ".*") + // `#` matches any segments after
+			"$" // Add $ to enforce end-of-string match
 	);
 
 	// Collect indices of serverTopics that match the regex
@@ -33,8 +36,8 @@ const packetParser = (packet, socket) => {
 		return parsedPacket;
 	} catch {
 		socket.write("Invalid packet format! Make sure it is JSON formatted");
-
 		console.error("Invalid packet format! Make sure it is JSON formatted");
+		socket.end();
 
 		return parsedPacket;
 	}
@@ -46,8 +49,8 @@ const packetHandlers = [
 	{
 		type: "CONNECTION",
 		code: 1,
-		function: (
-			{ clientType, username, password },
+		function: async (
+			{ username, password, patientId },
 			auth,
 			serverTopics,
 			socket
@@ -55,29 +58,41 @@ const packetHandlers = [
 			try {
 				//Search for user and password
 
-				if (clientType && username && password) {
-					// TODO: Check if user and password exist in database
-					// TODO: Verify client type and return appropriate response
-					auth.subscribe = true;
-					auth.publish = true;
-				}
+				if (username && password) {
+					const foundUser = await User.findOne({ username, password });
 
-				// IN CASE OF SUCCESS IN CONNECTION
+					if (!foundUser) {
+						const connack = new MqttPacket({
+							authState: auth,
+							responseCode: 0,
+							responseDetails:
+								"Could not connect because user credentials are wrong",
+							code: 2,
+						});
 
-				if (auth.publish === true) {
-					// TODO: Change for packet CONNACK
+						socket.write(connack.toJson());
+						socket.end();
+						return;
+					}
 
-					//Initialize mqtt packet
+					if (foundUser.roles.find((role) => role === "Publisher"))
+						auth.publish = true;
+
+					if (foundUser.roles.find((role) => role === "Subscriber"))
+						auth.subscribe = true;
+
+					if (patientId) auth.patientId = patientId;
+
 					const connack = new MqttPacket({
-						authState: true,
+						authState: auth,
 						responseCode: 0,
-						responseDetails: "Successfully connected",
+						responseDetails: `Successufully Connected, Permissions:
+						Subscribe Permission : ${auth.subscribe}
+						Publish Permission : ${auth.publish}`,
 						code: 2,
 					});
 
-					// console.log(connack.toJson());
 					socket.write(connack.toJson());
-
 					return;
 				}
 
@@ -87,10 +102,9 @@ const packetHandlers = [
 					code: 2,
 					authState: false,
 					responseCode: 0,
-					responseDetails: `erorr : ${error.message}`,
+					responseDetails: `error : ${error.message}`,
 				});
 
-				// TODO: Change for packet CONNACK
 				socket.write(connackError.toJson());
 				socket.end();
 			}
@@ -99,7 +113,7 @@ const packetHandlers = [
 	{
 		type: "PUBLISH",
 		code: 3,
-		function: ({ topic, value }, auth, serverTopics, socket) => {
+		function: async ({ topic, value }, auth, serverTopics, socket) => {
 			// Description: Change data of topic or create new one
 
 			// Inicialize a default error packet
@@ -112,43 +126,84 @@ const packetHandlers = [
 			});
 
 			try {
-				if (auth.publish === false) {
+				if (auth.publish !== true) {
 					// Inicialize a auth error packet
 					puback = new MqttPacket({
 						code: 4,
 						topic,
 						value,
 						responseCode: 0,
-						responseDetails: `Error: not authorized! 
-						Please Connect first with the
-						correct username and password to publish.`,
+						responseDetails: `Error: This account is not authorized to publish data!`,
 					});
 
 					socket.write(puback.toJson());
 					return;
 				}
-
-				// TODO add an error if client is trying to publish
-				// in a route that is not theirs
-				// for example if pacient 1 is trying to publish in Pacients/2
-				// an error will be returned
-
 				const topicsIndexes = routeFinderIndex(topic, serverTopics);
 
 				// Add a new route to the route stack if no wildcard is used and route does not exist
+				if (topic.includes("#") || topic.includes("+")) {
+					puback = new MqttPacket({
+						code: 4,
+						topic,
+						value,
+						responseCode: 0,
+						responseDetails: `Error: No wildcars are allowed for publishing "${topic}"`,
+					});
+					socket.write(puback.toJson());
+					socket.end();
+					return;
+				}
+
+				// If more than one route matches criteria, send an error message
+				if (topicsIndexes.length > 1) {
+					puback = new MqttPacket({
+						code: 4,
+						topic,
+						value,
+						responseCode: 0,
+						responseDetails: `Error: More than one route matches criteria "${topic}"`,
+					});
+					socket.write(puback.toJson());
+					socket.end();
+					return;
+				}
+
+				// Send error if patientId was not given at connection
+				if (!auth.patientId) {
+					puback = new MqttPacket({
+						code: 4,
+						topic,
+						value,
+						responseCode: 0,
+						responseDetails: `Error: Patient ID is required for publishing"`,
+					});
+					socket.write(puback.toJson());
+					socket.end();
+					return;
+				}
+
+				// An error if client is trying to publish
+				// in a route that is not theirs
+				const topicRegex = /^patients\/(?<patientId>[0-9]+)(?:\/.*)?$/;
+				const match = topic.match(topicRegex);
+
+				// If topic does not match patientId, send an error message
+				if (!match || match.groups.patientId != auth.patientId) {
+					const puback = new MqttPacket({
+						code: 4,
+						topic,
+						value,
+						responseCode: 0,
+						responseDetails: `Error: Client is not authorized to publish data for this patient: ${auth.patientId}`,
+					});
+					socket.write(puback.toJson());
+					socket.end();
+					return;
+				}
+
+				//Create new topic and publish data
 				if (topicsIndexes.length == 0) {
-					if (topic.includes("#") || topic.includes("+")) {
-						puback = new MqttPacket({
-							code: 4,
-							topic,
-							value,
-							responseCode: 0,
-							responseDetails: `Error: No topic matches the expression "${topic}"`,
-						});
-						socket.write(puback.toJson());
-						return;
-					}
-					//todo: emit publish to subscribed channels
 					puback = new MqttPacket({
 						code: 4,
 						topic,
@@ -157,25 +212,61 @@ const packetHandlers = [
 						responseDetails: `Data published successfully! New topic created.`,
 					});
 
-					serverTopics.push({ topic, value });
+					serverTopics.push({
+						topic,
+						value,
+						publisherAddress: socket.address(),
+					});
+
+					const route = await Route.create({ topic, value: { value } });
+
+					await route.save();
+
 					socket.write(puback.toJson());
 					return;
 				}
 
-				for (const topicIndex of topicsIndexes) {
-					serverTopics[topicIndex].value = value;
-				}
+				// TODO: When client tries to publish in a route that already has a publisher
+				// !Throw error
 
-				puback = new MqttPacket({
-					code: 4,
-					topic,
-					value,
-					responseCode: 0,
-					responseDetails: `Data published successfully!`,
-				});
-				//todo: emit publish to subscribed channels
-				socket.write(puback.toJson());
+				//if (topicsIndexes.length == 1) {
+				//if(serverTopics[0]?.publisherAddress){}
+				//}
+
+				//Publish data to existing topic
+				if (topicsIndexes.length == 1) {
+					puback = new MqttPacket({
+						code: 4,
+						topic,
+						value,
+						responseCode: 0,
+						responseDetails: `Data published successfully! New topic created.`,
+					});
+					serverTopics[0].value = value;
+					serverTopics[0].publisherAddress = socket.address();
+
+					const routeToUpdate = await Route.findOne({ topic });
+
+					routeToUpdate.topic = topic;
+					routeToUpdate.value.push({ value });
+
+					await routeToUpdate.save();
+
+					//console.log(serverTopics);
+
+					puback = new MqttPacket({
+						code: 4,
+						topic,
+						value,
+						responseCode: 0,
+						responseDetails: `Data published successfully!`,
+					});
+
+					socket.write(puback.toJson());
+					return;
+				}
 			} catch (error) {
+				console.error(error);
 				socket.write(puback.toJson());
 			}
 		},
@@ -183,7 +274,7 @@ const packetHandlers = [
 	{
 		type: "SUBSCRIBE",
 		code: 8,
-		function: ({ topic }, auth, serverTopics, socket) => {
+		function: async ({ topic }, auth, serverTopics, socket) => {
 			let suback = new MqttPacket({
 				code: 9,
 				topic,
@@ -194,8 +285,9 @@ const packetHandlers = [
 
 			try {
 				// Inicialize a default error packet
+				console.log("here !!!");
 
-				if (auth.subscribe === false) {
+				if (auth.subscribe !== true) {
 					// Inicialize a auth error packet
 					suback = new MqttPacket({
 						code: 9,
@@ -208,6 +300,24 @@ const packetHandlers = [
 					});
 
 					socket.write(suback.toJson());
+					socket.end();
+					return;
+				}
+
+				// SEND DATA EACH TIME IT'S DATA IS PUBLISHED IN SUBSCRIBED CHANNELS
+				let topicsIndexes = routeFinderIndex(topic, serverTopics);
+
+				if (topicsIndexes.length <= 0) {
+					suback = new MqttPacket({
+						code: 9,
+						topic,
+						value: null,
+						responseCode: 0,
+						responseDetails: `Topic(s) not found. Subscription failed.`,
+					});
+
+					socket.write(suback.toJson());
+					socket.end();
 					return;
 				}
 
@@ -215,19 +325,18 @@ const packetHandlers = [
 				suback = new MqttPacket({
 					code: 9,
 					topic,
-					value: null,
+					value: serverTopics[topicsIndexes],
 					responseCode: 0,
 					responseDetails: `Subscribed with success.`,
 				});
 
 				socket.write(suback.toJson());
 
-				// SEND DATA EACH TIME IT'S DATA IS PUBLISHED IN SUBSCRIBED CHANNELS
-				let topicsIndexes = routeFinderIndex(topic, serverTopics);
-
 				let oldSubscribedTopics = JSON.stringify(
 					topicsIndexes.map((topicIndex) => serverTopics[topicIndex])
 				);
+
+				console.log(topicsIndexes);
 
 				setInterval(() => {
 					topicsIndexes = routeFinderIndex(topic, serverTopics);
@@ -281,8 +390,12 @@ exports.handlePacket = (packet, auth, socket, serverTopics) => {
 		(packetHandler) => packetHandler.code == packet?.code // in case message has no code
 	);
 
-	//Throw error if packet handler not found
-	if (!packetHandler) throw new Error("Packet Type is not supported");
+	//End session if packet handler is not found
+	if (!packetHandler) {
+		socket.end();
+		console.error("Packet Type is not supported");
+		return;
+	}
 
 	// Call packet handler function with packet data
 	// Throw error if packet handler function throws an error
