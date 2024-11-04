@@ -2,6 +2,10 @@ const net = require("net");
 require("dotenv").config();
 const MqttPacket = require("../packetFormatter");
 
+// Função que mostra os dados do paciente a cada segundo
+function displayData() {
+	console.log(heartbeat, bloodGlucose, bloodPressure, bodyTemperature, breathingRate, oxygenSaturation)
+}
 // Criar uma socket para comunicar com o servidor
 
 //Adicionar node Args support
@@ -33,13 +37,16 @@ const client = net.createConnection(
 						code: 3,
 						topic: "patients/5",
 						value: {
-							random1: Math.random() * 10,
-							random2: Math.random() * 30,
-							random3: Math.random() * 50,
+							heartbeat: Math.floor(Math.random() *111) + 50,
+							bloodGlucose: Math.floor(Math.random() *110) + 60,
+							bloodPressure: Math.floor(Math.random() *131) +70,
+							bodyTemperature: Math.floor(Math.random() *42) +34,
+							breathingRate: Math.floor(Math.random() *30) +8,
+							oxygenSaturation: Math.floor(Math.random() * 101) +77,
 						},
 					}).toJson()
 				),
-			1000
+			displayData, 1000
 		);
 
 		client.on("data", (data) => {
