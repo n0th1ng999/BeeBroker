@@ -2,10 +2,18 @@ const net = require("net");
 require("dotenv").config();
 const MqttPacket = require("../packetFormatter");
 
+// Import the WebSocket library
+const WebSocket = require('ws');
+const http = require('http')
+
+// Most recent message
+let MQTT_RECENT_PACKAGE = {}
+
 // Criar uma socket para comunicar com o servidor
 
 //Adicionar node Args support
 
+//* Client MQTT
 const client = net.createConnection(
 	{
 		port: process.env.MQTT_BROKER_PORT,
@@ -33,7 +41,8 @@ const client = net.createConnection(
 		);
 
 		client.on("data", (data) => {
-			console.log(data.toString());
+			//console.log(data.toString());
+			MQTT_RECENT_PACKAGE = data.toString()
 		});
 
 		client.on("end", () => {
@@ -41,3 +50,27 @@ const client = net.createConnection(
 		});
 	}
 );
+
+//* Server Websocket
+
+// Create a WebSocket server on port 8080
+const WebSocketServer = new WebSocket.Server({ port: 8080 });
+
+// Event handler for when a client connects
+WebSocketServer.on('connection', (clientSocket) => {
+  console.log('A client connected'); // Log when a client connects
+
+  // Event handler for when the server receives a message from a client
+  clientSocket.on('message', (message) => {
+	if (message == 'recievePackage') {
+		console.log(`Received: ${message}`); // Log the received message
+    	clientSocket.send(JSON.stringify(MQTT_RECENT_PACKAGE)); // Send a response to the client
+	}
+    
+  });
+
+  // Event handler for when a client disconnects
+  clientSocket.on('close', () => {
+    console.log('Client disconnected'); // Log when a client disconnects
+  });
+});

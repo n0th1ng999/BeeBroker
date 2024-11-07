@@ -28,6 +28,7 @@
   },
   "homepage": "https://github.com/n0th1ng999/BeeBroker#readme",
   "dependencies": {
+    "@uidotdev/usehooks": "^2.4.1",
     "dotenv": "^16.4.5",
     "mongoose": "^8.7.3"
   }
