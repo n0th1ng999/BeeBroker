@@ -35,6 +35,7 @@ const packetParser = (packet, socket) => {
 
 		return parsedPacket;
 	} catch {
+		//TODO substituir por packet
 		socket.write("Invalid packet format! Make sure it is JSON formatted");
 		console.error("Invalid packet format! Make sure it is JSON formatted");
 		socket.end();

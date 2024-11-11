@@ -26,8 +26,8 @@ let topics = [];
 /**
  * Route : {
  * topic:String
- * value:[
- * { ... }]}
+ * value:
+ * 
  */
 Route.aggregate([
 	{

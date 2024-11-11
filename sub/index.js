@@ -5,7 +5,6 @@ const MqttPacket = require("../packetFormatter");
 // Criar uma socket para comunicar com o servidor
 
 //Adicionar node Args support
-
 const client = net.createConnection(
 	{
 		port: process.env.MQTT_BROKER_PORT,
