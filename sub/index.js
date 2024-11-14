@@ -56,18 +56,24 @@ const client = net.createConnection(
 // Create a WebSocket server on port 8080
 const WebSocketServer = new WebSocket.Server({ port: 8080 });
 
+let wsInterval
+
 // Event handler for when a client connects
 WebSocketServer.on('connection', (clientSocket) => {
   console.log('A client connected'); // Log when a client connects
 
   // Event handler for when the server receives a message from a client
   clientSocket.on('message', (message) => {
-	if (message == 'recievePackage') {
+	/* if (message == 'recievePackage') {
 		console.log(`Received: ${message}`); // Log the received message
     	clientSocket.send(JSON.stringify(MQTT_RECENT_PACKAGE)); // Send a response to the client
-	}
+	} */
     
   });
+
+  let wsInterval = setInterval(() => {
+	clientSocket.send(JSON.stringify(MQTT_RECENT_PACKAGE));
+  }, 1000);
 
   // Event handler for when a client disconnects
   clientSocket.on('close', () => {
