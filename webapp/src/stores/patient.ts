@@ -12,31 +12,35 @@ getters: {
             this.patients
             let jsonData = JSON.parse(recievedData)
         let patientsArray = JSON.parse(JSON.parse(jsonData).value)
-        //console.log(patientsArray);
-        let addFlag = true
+        console.log(patientsArray);
         patientsArray.forEach(patient => {
-            console.log(typeof patient.topic.replace('patients/',''));
-            this.patients.forEach(person => {
-                console.log(typeof person.id);
-            });
-            //! Entender o que se passa para adição excessiva dos pacientes
-            console.log((this.patients.some(person => {
-                JSON.parse(patient.topic.replace('patients/','')) === JSON.stringify(person.id)
-            })));
-            if (this.patients.some(person => {
-                patient.topic.replace('patients/','') == person.id
-            })) {
-                console.log('AAAAAA');
-                addFlag = false
+            const patientId = JSON.parse(JSON.stringify(+patient.topic.replace('patients/', '')))
+            console.log(patientId);
+            console.log(this.getPatient(patientId));
+            
+            if (this.getPatient(patientId) == undefined){
+                console.log('Unexistent patient :(');
+                this.patients.push(
+                    {
+                        id: patientId,
+                        heartRate: [JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random1],
+                        glycemicLevels: [JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random2],
+                        arterialPressure: [JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random3],
+                        bodyTemperature: [JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random1],
+                        respiratoryRate: [JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random2],
+                        oxygenSaturation: [JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random3],
+                    }
+                )
             } else {
-                console.log('BBBBBB');
+                console.log('Existant patient :)');
+                const patientToMod = this.getPatient(patientId)
+                patientToMod.heartRate.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random1);
+                patientToMod.glycemicLevels.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random2);
+                patientToMod.arterialPressure.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random3);
+                patientToMod.bodyTemperature.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random1);
+                patientToMod.respiratoryRate.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random2);
+                patientToMod.oxygenSaturation.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random3);
             }
-
-            if (addFlag) {
-                this.patients.push({id: patient.topic.replace('patients/','')})
-            }
-
-            addFlag = true
         });
         } catch (error) {
             console.log('ERROR');
