@@ -5,6 +5,7 @@ export const usePatientStore = defineStore('patients', {
 getters: {
         //! Property "never"
         getPatient: (state) => (id: number) => state.patients.find(patient => patient.id == id),
+        getEvery: (state) => state.patients
     },
     actions: {
       checkNewPatients(recievedData) {

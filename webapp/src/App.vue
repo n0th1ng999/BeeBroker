@@ -20,7 +20,6 @@ import { usePatientStore } from "./stores/patient";
       <RouterView />
       <hr>
     </v-main>
-    {{webSocket.data}}
   </v-app>
 </template>
 
