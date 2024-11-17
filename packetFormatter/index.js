@@ -33,9 +33,6 @@ const packetTypes = [
 
 class MqttPacket {
 	//Transform into JSON
-	toJson() {
-		return JSON.stringify(this.payload);
-	}
 
 	/**
 	 * @param {{topic: Boolean,
@@ -48,6 +45,10 @@ class MqttPacket {
 		this.payload = payload;
 		this.packetType = this.getPacketType(payload.code);
 		this.validate();
+	}
+
+	toJson() {
+		return JSON.stringify(this.payload);
 	}
 
 	// Find the packet type based on the packet code

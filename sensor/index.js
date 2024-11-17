@@ -2,14 +2,15 @@ const net = require("net");
 require("dotenv").config();
 const MqttPacket = require("../packetFormatter");
 
-// Função que mostra os dados do paciente a cada segundo
-function displayData() {
-	console.log(heartbeat, bloodGlucose, bloodPressure, bodyTemperature, breathingRate, oxygenSaturation)
+// Usar topico fornecido por process.argv[2] (node args)
+const topic = process.argv[2];
+
+if (!topic) {
+	console.error("Error: Please provide a topic as a command-line argument.");
+	process.exit(1);
 }
-// Criar uma socket para comunicar com o servidor
 
-//Adicionar node Args support
-
+// Criar uma conexão para comunicar com o servidor
 const client = net.createConnection(
 	{
 		port: process.env.MQTT_BROKER_PORT,
@@ -35,18 +36,18 @@ const client = net.createConnection(
 				client.write(
 					new MqttPacket({
 						code: 3,
-						topic: "patients/5",
+						topic: topic, // Topico dado por node Args
 						value: {
-							heartbeat: Math.floor(Math.random() *111) + 50,
-							bloodGlucose: Math.floor(Math.random() *110) + 60,
-							bloodPressure: Math.floor(Math.random() *131) +70,
-							bodyTemperature: Math.floor(Math.random() *42) +34,
-							breathingRate: Math.floor(Math.random() *30) +8,
-							oxygenSaturation: Math.floor(Math.random() * 101) +77,
+							heartbeat: Math.floor(Math.random() * 111) + 50,
+							bloodGlucose: Math.floor(Math.random() * 110) + 60,
+							bloodPressure: Math.floor(Math.random() * 131) + 70,
+							bodyTemperature: Math.floor(Math.random() * 42) + 34,
+							breathingRate: Math.floor(Math.random() * 30) + 8,
+							oxygenSaturation: Math.floor(Math.random() * 101) + 77,
 						},
 					}).toJson()
 				),
-			displayData, 1000
+			1000
 		);
 
 		client.on("data", (data) => {

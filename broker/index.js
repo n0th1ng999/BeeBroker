@@ -12,23 +12,20 @@ try {
 	process.exit(1);
 }
 
-//Parse data
-const parseData = (jsonString) => JSON.parse(jsonString);
-
 // MQTT Routes
-// topics are stored in memory with the their respective values and subtopics
-// They have a nested structure that contains the following properties
-
-// Todo: load topics from mongoDB
+// topics are stored in memory with the their respective values
 // Insteal of loading  topics
+/**
+ * topics : [
+ *  	{
+ * 	topic:String
+ * 	value:Any
+ * 	publisher:{ip, port, ...}
+ * 		}, ...
+ * ]
+ */
 let topics = [];
 
-/**
- * Route : {
- * topic:String
- * value:
- * 
- */
 Route.aggregate([
 	{
 		$project: {
@@ -44,23 +41,23 @@ Route.aggregate([
 	.catch((error) => console.error(error));
 
 //Server setup
-// TODO Change to tls
+// ? Change to tls
 const mqttBroker = net.createServer((socket) => {
 	const socketAddress = socket.address();
 
 	try {
-		//CUSTOM EVENTS: CONNECT, CONNACK, SUBSCRIBE, SUBACK, PUBLISH, PUBACK
 		let auth = { publish: false, subscribe: false };
-
-		//Handle incoming data
+		
 		socket.on("data", (packet) => {
 			// Temporarily remove the listener to prevent more incoming packets
 			socket.pause();
-
+			
+			//Handle Events
+			//CUSTOM EVENTS: CONNECT, SUBSCRIBE PUBLISH, 
 			handlePacket(packet, auth, socket, topics);
 
 			setTimeout(() => {
-				socket.resume();
+				socket.resume();// Stop socket communication for 1 second. Impedes overload of requests for the broker.
 			}, 1000);
 		});
 
