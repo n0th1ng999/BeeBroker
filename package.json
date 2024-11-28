@@ -29,6 +29,7 @@
   "homepage": "https://github.com/n0th1ng999/BeeBroker#readme",
   "dependencies": {
     "dotenv": "^16.4.5",
-    "mongoose": "^8.7.3"
+    "mongoose": "^8.7.3",
+    "mqtt-packet": "^9.0.1"
   }
 }
