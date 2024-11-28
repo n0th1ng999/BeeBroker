@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from "vue-router";
-import { useWebSocket } from '@vueuse/core'
 import { usePatientStore } from "./stores/patient";
+import { getCurrentInstance } from 'vue'
 </script>
 
 <template>
@@ -27,28 +27,24 @@ import { usePatientStore } from "./stores/patient";
 export default {
   data() {
     return {
-      ws: useWebSocket('ws://localhost:8080', {autoReconnect: true}),
-      patientStore: usePatientStore()
+      // ws: useWebSocket('ws://localhost:8080', {autoReconnect: true}),
+      patientStore: usePatientStore(),
+      wsConnection: null,
+      message: null,
     }
   },
-  computed: {
-    webSocket() {
-      //this.addData(this.ws.data)
-      this.patientStore.checkNewPatients(this.ws.data)
-      return {
-        status: this.ws.status,
-        data: this.ws.data,
-        send: this.ws.send,
-        open: this.ws.open,
-        close: this.ws.close
-      }
+  mounted() {
+    this.wsConnection = new WebSocket("ws://localhost:8080")
+    this.wsConnection.onmessage = function(event) {
+      console.log(event);
+      const patStore = usePatientStore()
+      patStore.checkNewPatients(event.data)
     }
-  },
-  methods: {
-    addData: (data) => {
-     console.log(data);
+    this.wsConnection.onopen = function(event) {
+      console.log(event)
+      console.log("Successfully connected to the echo websocket server...")
     }
-  },
+  }
 };
 </script>
 
