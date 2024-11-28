@@ -36,11 +36,29 @@ getters: {
                 console.log('Existant patient :)');
                 const patientToMod = this.getPatient(patientId)
                 patientToMod.heartRate.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random1);
+                if (patientToMod.heartRate.length > 20) {
+                    patientToMod.heartRate.splice(0, 1)
+                }
                 patientToMod.glycemicLevels.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random2);
+                if (patientToMod.glycemicLevels.length > 20) {
+                    patientToMod.glycemicLevels.splice(0, 1)
+                }
                 patientToMod.arterialPressure.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random3);
+                if (patientToMod.arterialPressure.length > 20) {
+                    patientToMod.arterialPressure.splice(0, 1)
+                }
                 patientToMod.bodyTemperature.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random1);
+                if (patientToMod.bodyTemperature.length > 20) {
+                    patientToMod.bodyTemperature.splice(0, 1)
+                }
                 patientToMod.respiratoryRate.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random2);
+                if (patientToMod.respiratoryRate.length > 20) {
+                    patientToMod.respiratoryRate.splice(0, 1)
+                }
                 patientToMod.oxygenSaturation.push(JSON.parse(JSON.stringify(JSON.parse(JSON.stringify(patient.value)))).random3);
+                if (patientToMod.oxygenSaturation.length > 20) {
+                    patientToMod.oxygenSaturation.splice(0, 1)
+                }
             }
         });
         } catch (error) {
